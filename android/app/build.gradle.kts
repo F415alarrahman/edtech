@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.example.edtech"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     // Set NDK version required by Firebase plugins
     ndkVersion = "27.0.12077973"
 
@@ -29,10 +29,10 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
     // Required minimum SDK for firebase_auth and related plugins
-    minSdk = 23
-    targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        minSdk = 23
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
     }
 
     buildTypes {

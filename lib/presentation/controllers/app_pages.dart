@@ -1,6 +1,5 @@
 import 'package:edtech/presentation/views/home_view.dart';
 import 'package:edtech/presentation/views/auth_view.dart';
-import 'package:edtech/presentation/views/role_select_view.dart';
 import 'package:get/get_navigation/src/routes/get_route.dart';
 
 class Routes {
@@ -14,7 +13,6 @@ class AppPages {
   static const initial = Routes.login;
   static final routes = [
     GetPage(name: Routes.login, page: () => const AuthView()),
-    GetPage(name: Routes.roleSelect, page: () => const RoleSelectView()),
     GetPage(name: Routes.home, page: () => const HomeView()),
   ];
 }

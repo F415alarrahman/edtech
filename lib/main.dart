@@ -5,9 +5,7 @@ import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'presentation/controllers/auth_controller.dart';
-
-// tambahkan
-import 'package:edtech/core/chat_repository_impl.dart';
+import 'package:edtech/data/repositories/chat_repository_impl.dart';
 import 'package:edtech/data/datasources/cache_store.dart';
 
 void main() async {
@@ -15,10 +13,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   setupFirebaseMessaging();
 
-  // init cache store (IO: Isar, Web: localStorage)
   final cache = await CacheStore.create();
-
-  // inject ke GetX agar bisa diambil di mana pun
   Get.put<AuthController>(AuthController(), permanent: true);
   Get.put<ChatRepository>(ChatRepository(cache), permanent: true);
 

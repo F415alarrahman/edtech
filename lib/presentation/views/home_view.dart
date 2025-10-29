@@ -1,5 +1,10 @@
+import 'package:edtech/data/repositories/chat_repository_impl.dart';
 import 'package:edtech/presentation/controllers/app_pages.dart';
-import 'package:edtech/presentation/widget/ChatButtonWithBadge.dart';
+import 'package:edtech/presentation/views/chat_room_view.dart';
+import 'package:edtech/presentation/widget/images_path.dart';
+import 'package:edtech/presentation/widget/no_found.dart';
+import 'package:edtech/presentation/widget/pro_shimmer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,9 +18,7 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthController>();
-    final peersC = Get.put(
-      HomeController(),
-    ); // controller urus subscribe sendiri
+    final peersC = Get.put(HomeController());
 
     return Scaffold(
       backgroundColor: Colors.grey[300],
@@ -32,109 +35,77 @@ class HomeView extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  IconButton(
-                    onPressed: () async {
-                      await auth.logout();
-                      Get.offAllNamed(Routes.login);
-                    },
-                    icon: const Icon(Icons.logout),
+                  Row(
+                    children: [
+                      Image.asset(ImagesAssets.logo, height: 32),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () async {
+                          await auth.logout();
+                          Get.offAllNamed(Routes.login);
+                        },
+                        icon: const Icon(Icons.logout),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
 
-                  // ===== HEADER / ROLE INFO (tidak Expanded) =====
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Obx(() {
-                      final myRole = auth.role.value;
-                      if (myRole.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final targetRole = (myRole == 'tutor')
-                          ? 'parent'
-                          : 'tutor';
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize
-                            .min, // penting: biar tidak minta tinggi tak terbatas
-                        children: [
-                          Text(
-                            'Logged in as: $myRole • Showing $targetRole',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                  auth.role.value == "student"
+                      ? const Text(
+                          "Call your parent to chat with their teacher",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(height: 12),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        )
+                      : Text(
+                          auth.role.value == "parent"
+                              ? "Chat with your child's teacher"
+                              : "Chat with parents",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                  auth.role.value == "student"
+                      ? NoFound(
+                          message: "No users available",
+                          subMessage:
+                              "There are no available users to chat with at the moment.",
+                        )
+                      : auth.loading.value
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              TextButton(
-                                onPressed: () async {
-                                  final db = FirebaseFirestore.instance;
-                                  try {
-                                    final all = await db
-                                        .collection('users')
-                                        .limit(20)
-                                        .get();
-                                    int tutor = 0,
-                                        parent = 0,
-                                        student = 0,
-                                        other = 0;
-                                    for (final d in all.docs) {
-                                      final r = (d.data()['role'] ?? '')
-                                          .toString()
-                                          .toLowerCase();
-                                      if (r == 'tutor') {
-                                        tutor++;
-                                      } else if (r == 'parent') {
-                                        parent++;
-                                      } else if (r == 'student') {
-                                        student++;
-                                      } else {
-                                        other++;
-                                      }
-                                    }
-                                    Get.snackbar(
-                                      'Users snapshot',
-                                      'total:${all.size} • tutor:$tutor • parent:$parent • student:$student • other:$other',
-                                      snackPosition: SnackPosition.BOTTOM,
-                                      duration: const Duration(seconds: 4),
-                                    );
-                                    for (final d in all.docs) {
-                                      // ignore: avoid_print
-                                      print(d.data());
-                                    }
-                                  } catch (e) {
-                                    Get.snackbar(
-                                      'Users read failed',
-                                      e.toString(),
-                                      snackPosition: SnackPosition.BOTTOM,
-                                    );
-                                  }
-                                },
-                                child: const Text('Debug Users'),
-                              ),
+                              ProShimmer(height: 10, width: 200),
+                              SizedBox(height: 4),
+                              ProShimmer(height: 10, width: 120),
+                              SizedBox(height: 4),
+                              ProShimmer(height: 10, width: 100),
+                              SizedBox(height: 4),
                             ],
                           ),
-
-                          const SizedBox(height: 8),
-                        ],
-                      );
-                    }),
-                  ),
-
-                  // ===== LIST AREA (Expanded di Column luar) =====
-                  auth.role.value == "student"
-                      ? const SizedBox()
+                        )
                       : Expanded(
                           child: Obx(() {
                             final peers = peersC.peers;
                             if (peers.isEmpty) {
-                              return const Center(child: Text('No users yet'));
+                              return const Center(
+                                child: NoFound(
+                                  message: "No users available",
+                                  subMessage:
+                                      "There are no available users to chat with at the moment.",
+                                ),
+                              );
                             }
+
                             return ListView.separated(
                               itemCount: peers.length,
                               separatorBuilder: (_, __) =>
-                                  const Divider(height: 1),
+                                  const SizedBox(height: 8),
+                              padding: const EdgeInsets.all(8),
                               itemBuilder: (_, i) {
                                 final u = peers[i];
                                 final name = (u['name'] as String?)?.trim();
@@ -142,16 +113,231 @@ class HomeView extends StatelessWidget {
                                     (name == null || name.isEmpty)
                                     ? '(no name)'
                                     : name;
-                                final initial = displayName[0].toUpperCase();
                                 final uid = (u['uid'] ?? '') as String? ?? '';
+                                final role = (u['role'] ?? '').toString();
 
-                                return ListTile(
-                                  leading: CircleAvatar(child: Text(initial)),
-                                  title: Text(displayName),
-                                  subtitle: Text((u['role'] ?? '').toString()),
-                                  trailing: uid.isEmpty
-                                      ? const SizedBox.shrink()
-                                      : ChatButtonWithBadge(otherUserId: uid),
+                                if (uid.isEmpty) return const SizedBox.shrink();
+
+                                return StreamBuilder<String?>(
+                                  stream: Stream.fromFuture(
+                                    Get.find<ChatRepository>().findDirectRoomId(
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                      uid,
+                                    ),
+                                  ),
+                                  builder: (context, roomSnap) {
+                                    final roomId = roomSnap.data;
+
+                                    final lastMsgStream = (roomId != null)
+                                        ? FirebaseFirestore.instance
+                                              .collection('rooms')
+                                              .doc(roomId)
+                                              .collection('messages')
+                                              .orderBy(
+                                                'createdAt',
+                                                descending: true,
+                                              )
+                                              .limit(1)
+                                              .snapshots()
+                                        : const Stream<
+                                            QuerySnapshot<Map<String, dynamic>>
+                                          >.empty();
+                                    final unreadStream = (roomId != null)
+                                        ? Get.find<ChatRepository>()
+                                              .streamUnreadCount(
+                                                roomId,
+                                                FirebaseAuth
+                                                    .instance
+                                                    .currentUser!
+                                                    .uid,
+                                              )
+                                        : const Stream<int>.empty();
+
+                                    return StreamBuilder<
+                                      QuerySnapshot<Map<String, dynamic>>
+                                    >(
+                                      stream: lastMsgStream,
+                                      builder: (context, lastSnap) {
+                                        String lastText = (roomId == null)
+                                            ? 'Mulai chat baru'
+                                            : 'Belum ada pesan';
+                                        String timeText = '';
+
+                                        if (lastSnap.hasData &&
+                                            lastSnap.data!.docs.isNotEmpty) {
+                                          final d = lastSnap.data!.docs.first
+                                              .data();
+                                          final t =
+                                              (d['text'] as String?) ?? '';
+                                          final ts = d['createdAt'];
+                                          lastText = (t.isEmpty)
+                                              ? '(pesan)'
+                                              : t;
+
+                                          if (ts is Timestamp) {
+                                            final dt = ts.toDate();
+                                            final hh = dt.hour
+                                                .toString()
+                                                .padLeft(2, '0');
+                                            final mm = dt.minute
+                                                .toString()
+                                                .padLeft(2, '0');
+                                            timeText = '$hh:$mm';
+                                          }
+                                        }
+
+                                        return StreamBuilder<int>(
+                                          stream: unreadStream,
+                                          initialData: 0,
+                                          builder: (context, unreadSnap) {
+                                            final unread = unreadSnap.data ?? 0;
+
+                                            return Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                  ),
+                                              child: InkWell(
+                                                onTap: () async {
+                                                  final repo =
+                                                      Get.find<
+                                                        ChatRepository
+                                                      >();
+                                                  final me = FirebaseAuth
+                                                      .instance
+                                                      .currentUser!;
+                                                  final rid =
+                                                      roomId ??
+                                                      await repo
+                                                          .createDirectRoom(
+                                                            createdBy: me.uid,
+                                                            otherId: uid,
+                                                          );
+                                                  Get.to(
+                                                    () => ChatRoomView(
+                                                      roomId: rid,
+                                                    ),
+                                                  );
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 10,
+                                                      ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      CircleAvatar(
+                                                        radius: 24,
+                                                        child: Text(
+                                                          displayName[0]
+                                                              .toUpperCase(),
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 20,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              displayName,
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: const TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 2,
+                                                            ),
+                                                            Text(
+                                                              '$role • $lastText',
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      if (unread > 0)
+                                                        Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            if (timeText
+                                                                .isNotEmpty)
+                                                              Text(
+                                                                timeText,
+                                                                style: const TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                              ),
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical: 2,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors
+                                                                    .redAccent,
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                              ),
+                                                              child: Text(
+                                                                '$unread',
+                                                                style: const TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                  },
                                 );
                               },
                             );

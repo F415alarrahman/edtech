@@ -1,16 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:edtech/data/datasources/cache_store.dart';
-import '../../domain/entities/chat_entities.dart';
+import '../../../domain/entities/chat_entities.dart';
 
 class ChatRepository {
   final _db = FirebaseFirestore.instance;
   final CacheStore _cache;
   ChatRepository(this._cache);
-
-  // =========================
-  // ROOMS
-  // =========================
   Stream<List<RoomEntity>> streamMyRooms(String uid) {
     return _db
         .collection('rooms')
@@ -31,7 +27,7 @@ class ChatRepository {
     required String parentId,
     required String studentId,
   }) async {
-    final members = [tutorId, parentId, studentId]..sort(); // deterministik
+    final members = [tutorId, parentId, studentId]..sort();
     final doc = _db.collection('rooms').doc();
     await doc.set({
       'id': doc.id,
@@ -49,7 +45,6 @@ class ChatRepository {
   }) async {
     final members = [createdBy, otherId]..sort();
 
-    // coba reuse kalau sudah ada
     final q = await _db
         .collection('rooms')
         .where('type', isEqualTo: 'direct')
@@ -74,11 +69,8 @@ class ChatRepository {
     return doc.id;
   }
 
-  // =========================
-  // MESSAGES
-  // =========================
   Stream<List<MessageEntity>> streamMessages(String roomId, {int limit = 50}) {
-    Map<String, DateTime> _toMap(dynamic m) {
+    Map<String, DateTime> toMap(dynamic m) {
       if (m is Map) {
         return m.map<String, DateTime>(
           (k, v) => MapEntry(
@@ -110,8 +102,8 @@ class ChatRepository {
               text: data['text'] ?? '',
               createdAt: created,
               type: data['type'],
-              deliveredTo: _toMap(data['deliveredTo']),
-              readBy: _toMap(data['readBy']),
+              deliveredTo: toMap(data['deliveredTo']),
+              readBy: toMap(data['readBy']),
             );
           }).toList();
 
@@ -138,7 +130,6 @@ class ChatRepository {
         .asyncMap((f) async => await f);
   }
 
-  // OFFLINE read ketika error/offline
   Future<List<MessageEntity>> loadCachedMessages(
     String roomId, {
     int limit = 20,
@@ -158,9 +149,6 @@ class ChatRepository {
         .toList();
   }
 
-  // =========================
-  // RECEIPTS (delivered/read) & UNREAD
-  // =========================
   Future<void> markDelivered(
     String roomId,
     String messageId,
@@ -177,7 +165,6 @@ class ChatRepository {
   }
 
   Future<void> markRoomRead(String roomId, String uid) async {
-    // update participants lastReadAt
     final pRef = _db
         .collection('rooms')
         .doc(roomId)
@@ -187,13 +174,12 @@ class ChatRepository {
       'lastReadAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // tandai read pada pesan lawan (batasi 50 terakhir)
     final q = await _db
         .collection('rooms')
         .doc(roomId)
         .collection('messages')
         .where('authorId', isNotEqualTo: uid)
-        .orderBy('authorId') // syarat Firestore utk isNotEqualTo
+        .orderBy('authorId')
         .orderBy('createdAt', descending: true)
         .limit(50)
         .get();
@@ -223,18 +209,6 @@ class ChatRepository {
       if (listEquals(m, members)) return d.id;
     }
     return null;
-  }
-
-  Future<void> _bumpRoomMeta({
-    required String roomId,
-    required String authorId,
-    required String preview,
-  }) async {
-    await _db.collection('rooms').doc(roomId).update({
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'lastMessageBy': authorId,
-      'lastMessageText': preview,
-    });
   }
 
   Future<void> sendText(String roomId, String uid, String text) async {
@@ -283,8 +257,6 @@ class ChatRepository {
     });
   }
 
-  // hitung unread via query (createdAt > lastReadAt && authorId != me)
-  // TANPA rxdart: pakai asyncExpand (setara switchMap)
   Stream<int> streamUnreadCount(String roomId, String uid) {
     final pRef = _db
         .collection('rooms')
@@ -314,7 +286,7 @@ class ChatRepository {
     return _db
         .collection('rooms')
         .where('members', arrayContains: uid)
-        .orderBy('lastMessageAt', descending: true) // kunci urutan
+        .orderBy('lastMessageAt', descending: true)
         .snapshots()
         .map(
           (snap) => snap.docs.map((d) {

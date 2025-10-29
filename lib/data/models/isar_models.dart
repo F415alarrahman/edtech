@@ -18,5 +18,5 @@ class CachedMessage {
   late String authorId;
   late String text;
   late DateTime createdAt;
-  late String type; // "text" | "action"
+  late String type;
 }

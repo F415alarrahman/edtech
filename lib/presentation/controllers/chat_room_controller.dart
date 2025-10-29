@@ -5,31 +5,31 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../data/datasources/cache_store.dart';
-import '../../core/chat_repository_impl.dart';
+import '../../data/repositories/chat_repository_impl.dart';
 import '../../domain/entities/chat_entities.dart';
 
 class ChatRoomController extends GetxController {
   final String roomId;
   ChatRoomController({required this.roomId});
 
-  // Deps
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
   late final ChatRepository _repo;
 
-  // UI state (semua di controller biar view stateless)
   final TextEditingController textCtrl = TextEditingController();
   final RxBool booted = false.obs;
 
-  // Chat state
   final RxList<MessageEntity> messages = <MessageEntity>[].obs;
   final RxList<String> members = <String>[].obs;
 
-  // Internals
   StreamSubscription? _msgSub;
   StreamSubscription? _roomSub;
   Timer? _readDebounce;
   bool _closed = false;
+
+  final loading = false.obs;
+
+  final scrollCtrl = ScrollController();
 
   @override
   void onInit() {
@@ -38,17 +38,15 @@ class ChatRoomController extends GetxController {
   }
 
   Future<void> _boot() async {
-    // Build repo dari CacheStore (tanpa Stateful di View)
     final cache = await CacheStore.create();
     _repo = ChatRepository(cache);
 
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
-      booted.value = true; // tetap booted agar UI gak loading terus
+      booted.value = true;
       return;
     }
 
-    // 1) Stream members
     _roomSub = _db.collection('rooms').doc(roomId).snapshots().listen((d) {
       final m =
           (d.data()?['members'] as List?)?.map((e) => e as String).toList() ??
@@ -56,7 +54,6 @@ class ChatRoomController extends GetxController {
       members.assignAll(m);
     });
 
-    // 2) Stream messages
     _msgSub = _repo
         .streamMessages(roomId)
         .listen(
@@ -64,7 +61,6 @@ class ChatRoomController extends GetxController {
             if (_closed) return;
             messages.assignAll(list);
 
-            // tandai delivered utk pesan lawan bicara
             final myUid = uid;
             final toDeliver = list.where(
               (m) => m.authorId != myUid && !m.deliveredTo.containsKey(myUid),
@@ -75,7 +71,6 @@ class ChatRoomController extends GetxController {
               );
             }
 
-            // debounce mark read
             _readDebounce?.cancel();
             _readDebounce = Timer(const Duration(milliseconds: 800), () async {
               if (_closed) return;
@@ -111,6 +106,27 @@ class ChatRoomController extends GetxController {
     await _repo.sendActionCard(roomId, uid, l);
   }
 
+  Future<void> editMessage(String messageId, String newText) async {
+    await _db
+        .collection('rooms')
+        .doc(roomId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+          'text': newText,
+          'edited': true,
+        });
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    await _db
+        .collection('rooms')
+        .doc(roomId)
+        .collection('messages')
+        .doc(messageId)
+        .delete();
+  }
+
   @override
   void onClose() {
     _closed = true;
@@ -121,6 +137,4 @@ class ChatRoomController extends GetxController {
     scrollCtrl.dispose();
     super.onClose();
   }
-
-  final scrollCtrl = ScrollController();
 }

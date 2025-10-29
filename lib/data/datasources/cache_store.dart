@@ -6,7 +6,7 @@ abstract class CacheStore {
   static CacheStore? _instance;
   static Future<CacheStore> create() async {
     if (_instance != null) return _instance!;
-    _instance = await createCacheStore(); // disediakan di selector
+    _instance = await createCacheStore();
     return _instance!;
   }
 }

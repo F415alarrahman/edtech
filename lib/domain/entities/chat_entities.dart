@@ -1,6 +1,6 @@
 class RoomEntity {
   final String id;
-  final String type; // trio | group | direct
+  final String type;
   final List<String> members;
   final DateTime? lastMessageAt;
   final String? lastMessageBy;
@@ -22,9 +22,9 @@ class MessageEntity {
   final String authorId;
   final String text;
   final DateTime createdAt;
-  final String type; // "text" | "action"
-  final Map<String, DateTime> deliveredTo; // optional
-  final Map<String, DateTime> readBy; // optional
+  final String type;
+  final Map<String, DateTime> deliveredTo;
+  final Map<String, DateTime> readBy;
 
   MessageEntity({
     required this.id,
