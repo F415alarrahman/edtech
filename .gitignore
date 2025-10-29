@@ -1,0 +1,92 @@
+# ======================
+# Flutter / Dart Project
+# ======================
+
+# Build outputs & cache
+/build/
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/ios/Flutter/.last_build_id
+**/doc/api/
+
+# Android specific
+/android/.gradle/
+/android/app/build/
+/android/local.properties
+*.keystore
+*.jks
+
+# iOS / macOS specific
+ios/Pods/
+ios/Podfile.lock
+ios/Flutter/Flutter.podspec
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+*.xcworkspace
+*.xcuserstate
+macos/Pods/
+macos/Podfile.lock
+
+# Windows / Linux builds
+windows/
+linux/
+macos/build/
+
+# ======================
+# IDE / Editor
+# ======================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+.history/
+.migrate_working_dir/
+
+# ======================
+# Firebase / Secrets
+# ======================
+# Jangan pernah commit file berikut:
+server/serviceAccountKey.json
+**/serviceAccount*.json
+*.key
+*.pem
+.firebase/
+firebase-debug.log
+.firebaserc
+firebase.json
+firestore.rules
+storage.rules
+
+# ======================
+# Env files
+# ======================
+.env
+.env.local
+.env.*.local
+secrets/
+credentials/
+
+# ======================
+# Symbolication & Obfuscation
+# ======================
+app.*.symbols
+app.*.map.json
+
+# ======================
+# Generated files & metadata
+# ======================
+.flutter-plugins-deps
+.metadata
+analysis_options.yaml
+.migrate_working_dir/
